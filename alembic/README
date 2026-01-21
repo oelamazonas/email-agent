@@ -1,0 +1,35 @@
+Generic single-database configuration for Email Agent AI.
+
+# Creating a new migration
+
+After modifying models in api/models.py:
+
+```bash
+# Auto-generate migration
+docker-compose exec api alembic revision --autogenerate -m "Description of changes"
+
+# Apply migration
+docker-compose exec api alembic upgrade head
+```
+
+# Rolling back
+
+```bash
+# Rollback one migration
+docker-compose exec api alembic downgrade -1
+
+# Rollback to specific revision
+docker-compose exec api alembic downgrade <revision_id>
+```
+
+# Checking current version
+
+```bash
+docker-compose exec api alembic current
+```
+
+# Viewing migration history
+
+```bash
+docker-compose exec api alembic history
+```

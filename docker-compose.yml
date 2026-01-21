@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # API FastAPI
   api:
@@ -70,6 +68,7 @@ services:
       - DATABASE_URL=postgresql://emailagent:${DB_PASSWORD:-emailagent123}@db:5432/emailagent
       - REDIS_URL=redis://redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     depends_on:
       - db
       - redis

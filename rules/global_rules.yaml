@@ -1,0 +1,159 @@
+# Global classification rules for Email Agent AI
+#
+# Rules are checked in priority order (higher priority = checked first)
+# First matching rule wins
+#
+# Available conditions:
+#   - sender_contains: Text in sender email (supports | for OR)
+#   - sender_equals: Exact sender match
+#   - subject_contains: Text in subject (supports | for OR)
+#   - subject_equals: Exact subject match
+#   - body_contains: Text in body preview
+#   - has_attachments: true/false
+#   - attachment_name_contains: Text in attachment filename
+#
+# Available categories:
+#   INVOICE, RECEIPT, DOCUMENT, PROFESSIONAL, NEWSLETTER,
+#   PROMOTION, SOCIAL, NOTIFICATION, PERSONAL, SPAM, UNKNOWN
+
+rules:
+  # High priority: Invoices and receipts
+  - name: "Invoice by subject"
+    priority: 100
+    conditions:
+      subject_contains: "facture|invoice|factuur"
+    category: INVOICE
+    folder: "Finance/Invoices"
+
+  - name: "Invoice by attachment"
+    priority: 100
+    conditions:
+      has_attachments: true
+      attachment_name_contains: "facture|invoice|factuur"
+    category: INVOICE
+    folder: "Finance/Invoices"
+
+  - name: "Receipt by subject"
+    priority: 90
+    conditions:
+      subject_contains: "reçu|receipt|confirmation de paiement|payment confirmation"
+    category: RECEIPT
+    folder: "Finance/Receipts"
+
+  # Documents
+  - name: "Google Drive share"
+    priority: 80
+    conditions:
+      sender_contains: "drive-shares-noreply@google.com"
+      subject_contains: "shared|partagé"
+    category: DOCUMENT
+    folder: "Documents/Shared"
+
+  - name: "Dropbox share"
+    priority: 80
+    conditions:
+      sender_contains: "no-reply@dropbox.com"
+      subject_contains: "shared|invited"
+    category: DOCUMENT
+    folder: "Documents/Shared"
+
+  - name: "WeTransfer download"
+    priority: 80
+    conditions:
+      sender_contains: "noreply@wetransfer.com"
+    category: DOCUMENT
+    folder: "Documents/Downloads"
+
+  # Social networks
+  - name: "LinkedIn notifications"
+    priority: 60
+    conditions:
+      sender_contains: "@linkedin.com"
+    category: SOCIAL
+    folder: "Social/LinkedIn"
+
+  - name: "Facebook notifications"
+    priority: 60
+    conditions:
+      sender_contains: "notification@facebookmail.com"
+    category: SOCIAL
+    folder: "Social/Facebook"
+
+  - name: "Twitter notifications"
+    priority: 60
+    conditions:
+      sender_contains: "@twitter.com|@x.com"
+    category: SOCIAL
+    folder: "Social/Twitter"
+
+  # Newsletters
+  - name: "Unsubscribe link newsletter"
+    priority: 50
+    conditions:
+      body_contains: "unsubscribe|se désabonner"
+      subject_contains: "newsletter|bulletin"
+    category: NEWSLETTER
+    folder: "Newsletters"
+
+  - name: "Marketing newsletter"
+    priority: 50
+    conditions:
+      subject_contains: "newsletter|news|weekly|monthly"
+    category: NEWSLETTER
+    folder: "Newsletters"
+
+  # Promotions
+  - name: "Discount promotion"
+    priority: 40
+    conditions:
+      subject_contains: "% off|-50%|promo|soldes|sale|réduction"
+    category: PROMOTION
+    folder: "Promotions"
+
+  - name: "Marketing promotion"
+    priority: 40
+    conditions:
+      body_contains: "offre spéciale|special offer|limited time"
+    category: PROMOTION
+    folder: "Promotions"
+
+  # System notifications
+  - name: "GitHub notifications"
+    priority: 70
+    conditions:
+      sender_contains: "notifications@github.com"
+    category: NOTIFICATION
+    folder: "Dev/GitHub"
+
+  - name: "GitLab notifications"
+    priority: 70
+    conditions:
+      sender_contains: "@gitlab.com"
+    category: NOTIFICATION
+    folder: "Dev/GitLab"
+
+  - name: "Calendar event"
+    priority: 65
+    conditions:
+      sender_contains: "calendar-notification@google.com"
+      subject_contains: "invitation|reminder|rappel"
+    category: NOTIFICATION
+    folder: "Calendar"
+
+  - name: "Auto-reply notification"
+    priority: 30
+    conditions:
+      subject_contains: "automatic reply|out of office|absence"
+    category: NOTIFICATION
+    auto_delete: false
+
+  # Spam (low priority - let LLM handle most)
+  - name: "Obvious spam"
+    priority: 10
+    conditions:
+      subject_contains: "viagra|casino|lottery|winner|claim your prize"
+    category: SPAM
+    auto_delete: true
+
+# Note: Emails that don't match any rule will be classified by Ollama LLM
+# Rules are meant to handle obvious cases quickly and reduce LLM workload

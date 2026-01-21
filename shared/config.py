@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     MICROSOFT_CLIENT_ID: Optional[str] = None
     MICROSOFT_CLIENT_SECRET: Optional[str] = None
     MICROSOFT_REDIRECT_URI: Optional[str] = None
+    MICROSOFT_TENANT_ID: str = "common"  # common for multi-tenant, or specific tenant ID
     
     # Monitoring
     SENTRY_DSN: Optional[str] = None
@@ -67,6 +68,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"
 
 
 # Instance globale des settings

@@ -71,37 +71,45 @@ class EmailClassifier:
     ) -> str:
         """Construire le prompt pour la classification"""
         
-        prompt = f"""Tu es un assistant de classification d'emails. Ton rôle est de classifier chaque email dans UNE catégorie.
+        prompt = f"""Tu es un expert en classification d'emails. Ton objectif est de trier les emails pour une organisation efficace.
 
-Catégories disponibles:
-- invoice: Factures (contient des montants, TVA, IBAN, ou pièce jointe nommée "facture"/"invoice")
-- receipt: Reçus de paiement ou confirmations de commande
-- document: Documents partagés (liens Google Drive, Dropbox, WeTransfer, etc.)
-- professional: Email professionnel important (projets, réunions, décisions)
-- newsletter: Newsletters et bulletins d'information
-- promotion: Promotions, publicités, offres commerciales
-- social: Notifications de réseaux sociaux (LinkedIn, Facebook, Twitter)
-- notification: Notifications automatiques (confirmations, alertes système)
-- personal: Email personnel (famille, amis)
-- spam: Spam évident
+RÈGLES DE PRIORITÉ :
+1. "invoice" et "receipt" sont PRIORITAIRES si l'email contient une preuve d'achat/paiement, même s'il s'agit d'un échange professionnel.
+2. "spam" est prioritaire si le contenu est manifestement indésirable.
+3. Si un email relève de plusieurs catégories, choisis la plus spécifique au contenu principal.
 
-Analyse cet email et réponds UNIQUEMENT avec un objet JSON:
+Catégories disponibles :
+- invoice: Factures, demandes de paiement (contient montant, TVA, IBAN, ou pièce jointe "facture").
+- receipt: Reçus, confirmations de commande/paiement.
+- document: Envoi de fichiers/documents (Google Drive, WeTransfer, PJ importante sans contexte financier).
+- professional: Échanges pro, réunions, projets, RH.
+- newsletter: Contenu éditorial récurrent, veille.
+- promotion: Offres commerciales, pubs, réductions.
+- social: Notifications LinkedIn, etc.
+- notification: Alertes système, confirmations automatiques (création de compte, sécurité).
+- personal: Famille, amis, contexte non-pro.
+- spam: Arnaques, phishing, junk.
+
+INSTRUCTIONS DE SORTIE :
+- Réponds UNIQUEMENT avec un objet JSON valide.
+- N'écris AUCUN texte avant ou après le JSON.
+- N'utilise PAS de balises markdown (comme ```json).
+
+EXEMPLE DE SORTIE ATTENDUE :
 {{
-    "category": "nom_de_la_categorie",
-    "confidence": nombre_entre_0_et_100,
-    "reason": "explication_courte"
+    "category": "invoice",
+    "confidence": 95,
+    "reason": "L'email contient une pièce jointe 'facture_001.pdf' et mentionne un montant à régler."
 }}
 
-EMAIL À CLASSIFIER:
+EMAIL À CLASSIFIER :
 ---
 Expéditeur: {sender}
 Sujet: {subject}
-Corps (aperçu): {body_preview[:300]}
+Corps (aperçu): {body_preview[:1000]}
 Pièces jointes: {has_attachments}
 {f"Noms des pièces jointes: {', '.join(attachment_names)}" if attachment_names else ""}
----
-
-RÉPONDS UNIQUEMENT AVEC LE JSON, RIEN D'AUTRE:"""
+---"""
         
         return prompt
     

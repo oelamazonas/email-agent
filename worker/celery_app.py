@@ -15,6 +15,7 @@ celery_app = Celery(
     backend=settings.REDIS_URL,
     include=[
         'worker.tasks.email_sync',
+        'worker.tasks.email_classification',
         'worker.tasks.classification',
         'worker.tasks.maintenance'
     ]
@@ -39,6 +40,12 @@ celery_app.conf.beat_schedule = {
     'sync-all-accounts': {
         'task': 'worker.tasks.email_sync.sync_all_accounts',
         'schedule': crontab(minute=f'*/{settings.EMAIL_POLL_INTERVAL}'),
+    },
+    # Classifier les emails en attente toutes les 10 minutes
+    'classify-pending-emails': {
+        'task': 'worker.tasks.email_classification.classify_pending_emails',
+        'schedule': crontab(minute='*/10'),
+        'kwargs': {'limit': 100}
     },
     # Nettoyer les emails en quarantaine tous les jours à 2h du matin
     'cleanup-quarantine': {

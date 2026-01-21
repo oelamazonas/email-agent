@@ -386,71 +386,90 @@ def create_token(user_id: int) -> str:
 
 ## 🗺️ Roadmap & TODOs
 
-### Phase 1: Core Connectors (PRIORITÉ HAUTE)
+### ✅ Phase 1: Core Connectors (COMPLÉTÉE - 2026-01-20)
 
-```python
-# À implémenter: shared/integrations/
+**Status**: Tous les connecteurs sont implémentés et fonctionnels!
 
-# 1. IMAP Connector
-class IMAPConnector:
-    """
-    TODO:
-    - Connect SSL
-    - Authenticate
-    - Fetch since last_sync
-    - Parse MIME
-    - Handle attachments
-    - Move/delete emails
-    """
+**Localisation**: `shared/integrations/`
 
-# 2. Gmail Connector
-class GmailConnector:
-    """
-    TODO:
-    - OAuth2 flow
-    - Token refresh
-    - Fetch via Gmail API
-    - Batch operations
-    """
+**Connecteurs disponibles**:
 
-# 3. Microsoft Connector  
-class MicrosoftConnector:
-    """
-    TODO:
-    - OAuth2 MSAL
-    - Graph API
-    - Fetch messages
-    """
+1. **✅ IMAP Connector** (`shared/integrations/imap.py`)
+   - Connect SSL
+   - Authenticate
+   - Fetch since last_sync
+   - Parse MIME
+   - Handle attachments
+   - Move/delete emails
+   - Documentation: `docs/CONNECTOR_REFACTORING.md`
+
+2. **✅ Gmail Connector** (`shared/integrations/gmail.py`)
+   - OAuth2 flow (GmailOAuth2Manager)
+   - Token refresh automatique
+   - Fetch via Gmail API
+   - Batch operations
+   - Move/delete emails
+   - Documentation: `docs/GMAIL_SETUP.md`, `docs/GMAIL_CONNECTOR.md`
+
+3. **✅ Microsoft Connector** (`shared/integrations/microsoft.py`)
+   - OAuth2 MSAL (MicrosoftOAuth2Manager)
+   - Microsoft Graph API
+   - Fetch messages
+   - Move/delete emails
+   - Documentation: `docs/MICROSOFT_SETUP.md`, `docs/MICROSOFT_CONNECTOR.md`
+
+**Structure commune**:
+- Tous héritent de `BaseEmailConnector` (`shared/integrations/base.py`)
+- Credentials chiffrées en DB (Fernet)
+- Refresh automatique des tokens OAuth2
+- Intégration dans `worker/tasks/email_sync.py`
+- Scripts de test disponibles: `scripts/test_*_connector.py`
+
+### ✅ Phase 2: Actions (COMPLÉTÉE - 2026-01-21)
+
+**Status**: Tous les composants d'actions sont implémentés et testés!
+
+**Localisation**: `worker/actions/` et `worker/rules/`
+
+**Composants implémentés**:
+
+1. **✅ Classification Rules System** (`worker/rules/rules_parser.py`)
+   - YAML-based rules engine
+   - Priority-based rule matching
+   - Multiple condition types (sender, subject, body, attachments)
+   - Default rules: `rules/global_rules.yaml`
+   - Documentation: `docs/PHASE_2_ACTIONS.md`
+
+2. **✅ Email Actions Module** (`worker/actions/email_actions.py`)
+   - `apply_classification_action()` - Apply actions based on classification
+   - `bulk_move_emails()` - Batch move operation with error handling
+   - `apply_label()` - Gmail label support
+   - `bulk_classify_pending_emails()` - Process pending emails
+   - Full action logging to ProcessingLog table
+
+3. **✅ Celery Integration** (`worker/tasks/email_classification.py`)
+   - `classify_pending_emails` - Scheduled task (every 10 min)
+   - `classify_single_email` - On-demand classification
+   - Auto-trigger after email sync
+
+4. **✅ Action Logging**
+   - All actions logged to `processing_logs` table
+   - Tracks success/failure, details, timestamps
+   - Full audit trail for compliance
+
+5. **✅ Test Suite**
+   - `tests/test_email_actions.py` - 8 comprehensive tests
+   - `tests/test_rules_parser.py` - 11 rule parsing tests
+   - All tests passing ✅
+
+**Workflow**:
+```
+Email Sync → Rules Check → LLM (if needed) → Actions → Logging
+     ↓            ↓              ↓              ↓         ↓
+  Phase 1    Phase 2        Phase 2        Phase 2   Phase 2
 ```
 
-### Phase 2: Actions (PRIORITÉ HAUTE)
-
-```python
-# worker/actions/email_actions.py
-
-async def archive_email(email: Email, folder: str):
-    """
-    TODO:
-    - Get connector for account
-    - Move to folder
-    - Update DB
-    """
-
-async def delete_email(email: Email, permanent: bool = False):
-    """
-    TODO:
-    - Move to trash or delete permanently
-    - Update DB
-    """
-
-async def apply_classification_action(email: Email):
-    """
-    TODO:
-    - Check rules
-    - Execute action
-    - Log result
-    """
-```
+**Documentation**: Voir `docs/PHASE_2_ACTIONS.md` pour détails complets
 
 ### Phase 3: Advanced (PRIORITÉ MOYENNE)
 
@@ -638,4 +657,4 @@ A: `.env` (jamais committés), chiffrés en DB avec Fernet
 
 **Ce guide est ta référence principale. Consulte-le AVANT de développer.** 🚀
 
-**Version**: 1.0.0 | **Dernière mise à jour**: 2025-01-20
+**Version**: 1.2.0 | **Dernière mise à jour**: 2026-01-21 | **Phase 1 & 2: ✅ COMPLÉTÉES**
