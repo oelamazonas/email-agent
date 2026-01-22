@@ -11,6 +11,19 @@ from worker.actions import bulk_classify_pending_emails
 logger = logging.getLogger(__name__)
 
 
+def run_async(coro):
+    """
+    Helper to run async code safely in Celery worker context.
+    Celery workers already have an event loop, so we can't use asyncio.run().
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
+
+
 @shared_task(name='worker.tasks.email_classification.classify_pending_emails')
 def classify_pending_emails(limit: int = 100):
     """
@@ -31,7 +44,7 @@ def classify_pending_emails(limit: int = 100):
     logger.info(f"Starting classification task (limit: {limit})")
 
     try:
-        result = asyncio.run(bulk_classify_pending_emails(limit=limit))
+        result = run_async(bulk_classify_pending_emails(limit=limit))
 
         logger.info(f"Classification task completed: {result}")
         return result
@@ -133,7 +146,7 @@ def classify_single_email(email_id: int):
                     'actions': action_result
                 }
 
-        result = asyncio.run(_classify())
+        result = run_async(_classify())
         logger.info(f"Email {email_id} classification completed: {result}")
         return result
 

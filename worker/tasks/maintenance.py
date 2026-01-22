@@ -3,9 +3,23 @@ Tâches Celery pour la maintenance
 """
 from celery import shared_task
 import logging
+import asyncio
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
+
+
+def run_async(coro):
+    """
+    Helper to run async code safely in Celery worker context.
+    Celery workers already have an event loop, so we can't use asyncio.run().
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(coro)
 
 
 @shared_task(name='worker.tasks.maintenance.cleanup_quarantine')
@@ -16,7 +30,6 @@ def cleanup_quarantine():
     """
     logger.info("Starting quarantine cleanup")
 
-    import asyncio
     from api.database import get_db_context
     from api.models import Email
     from sqlalchemy import select, and_
@@ -53,7 +66,7 @@ def cleanup_quarantine():
 
     try:
         # 3. Logger le nombre d'emails supprimés
-        emails_deleted = asyncio.run(_cleanup())
+        emails_deleted = run_async(_cleanup())
 
         logger.info(f"Quarantine cleanup completed: {emails_deleted} emails deleted")
         return {
@@ -77,7 +90,6 @@ def generate_daily_stats():
     """
     logger.info("Generating daily statistics")
 
-    import asyncio
     from api.database import get_db_context
     from api.models import Email, EmailCategory, ProcessingStatus
     from sqlalchemy import select, func, and_
@@ -146,7 +158,7 @@ def generate_daily_stats():
             return stats
 
     try:
-        stats = asyncio.run(_generate_stats())
+        stats = run_async(_generate_stats())
 
         logger.info(f"Daily stats generated successfully")
         return {
@@ -171,7 +183,6 @@ def optimize_database():
     """
     logger.info("Starting database optimization")
 
-    import asyncio
     from api.database import get_db_context
     from sqlalchemy import text
 
@@ -241,7 +252,7 @@ def optimize_database():
             return results
 
     try:
-        results = asyncio.run(_optimize())
+        results = run_async(_optimize())
 
         success_count = sum(1 for r in results if r.get('status') == 'success')
         error_count = sum(1 for r in results if r.get('status') == 'error')

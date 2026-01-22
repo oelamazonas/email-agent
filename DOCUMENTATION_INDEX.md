@@ -194,6 +194,13 @@ docs/
 - [scripts/test_*_connector.py](scripts/) - Tests connecteurs
 - [docs/tech_doc/PHASE_2_ACTIONS.md](docs/tech_doc/PHASE_2_ACTIONS.md) - Tests actions
 
+### Scripts Utilitaires
+- [scripts/README.md](scripts/README.md) - Documentation complète des scripts
+- [scripts/generate_keys.py](scripts/generate_keys.py) - Générer les clés de sécurité
+- [scripts/add_email_account.py](scripts/add_email_account.py) - Ajouter/gérer des comptes email
+- [scripts/check_classifications.py](scripts/check_classifications.py) - Statistiques de classification
+- [scripts/test_rules.py](scripts/test_rules.py) - Tester les règles de classification
+
 ---
 
 ## 📊 Architecture & Composants

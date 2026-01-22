@@ -20,16 +20,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from sqlalchemy import select
 from cryptography.fernet import Fernet
-from passlib.context import CryptContext
 
 from api.database import AsyncSessionLocal
 from api.models import User, EmailAccount, AccountType
 from shared.config import settings
-from shared.security import encrypt_credentials, decrypt_credentials
+from shared.security import encrypt_credentials, decrypt_credentials, hash_password
 
 
-# Configuration du hashing de password
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Note: hash_password is now imported from shared.security
+# Uses pwdlib with Argon2 (modern, OWASP recommended)
 
 
 # Note: encrypt_credentials et decrypt_credentials sont maintenant dans shared/security.py
@@ -47,7 +46,7 @@ async def get_or_create_admin_user(db):
         user = User(
             email=settings.ADMIN_EMAIL,
             username="admin",
-            hashed_password=pwd_context.hash(settings.ADMIN_PASSWORD),
+            hashed_password=hash_password(settings.ADMIN_PASSWORD),
             full_name="Administrator",
             is_admin=True,
             is_active=True

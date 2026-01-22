@@ -8,6 +8,7 @@ import json
 from sqlalchemy import select
 from datetime import datetime
 from typing import Optional, Dict, Any
+import datetime as dt_module
 
 from api.database import get_db_context
 from api.models import EmailAccount, Email, AccountType, ProcessingStatus
@@ -15,6 +16,49 @@ from shared.security import decrypt_password
 from shared.integrations import ImapConnector, GmailConnector, MicrosoftConnector
 
 logger = logging.getLogger(__name__)
+
+
+def run_async(coro):
+    """
+    Helper to run async code safely in Celery worker context.
+
+    Celery workers already have an event loop running, so we can't use asyncio.run()
+    which would try to create a new loop. Instead, we get the current loop and
+    run the coroutine in it.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # No event loop in current thread, create one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    return loop.run_until_complete(coro)
+
+
+def normalize_datetime(dt: Optional[datetime]) -> Optional[datetime]:
+    """
+    Convert timezone-aware datetime to naive UTC datetime.
+
+    PostgreSQL with asyncpg requires consistent timezone handling.
+    Our models use naive datetimes (datetime.utcnow), so we need to
+    convert any timezone-aware datetimes to naive UTC.
+
+    Args:
+        dt: Datetime object (can be aware or naive)
+
+    Returns:
+        Naive datetime in UTC, or None if input is None
+    """
+    if dt is None:
+        return None
+
+    if dt.tzinfo is not None:
+        # Convert to UTC and remove timezone info
+        return dt.astimezone(dt_module.timezone.utc).replace(tzinfo=None)
+
+    # Already naive
+    return dt
 
 async def _get_active_accounts_ids():
     async with get_db_context() as db:
@@ -68,13 +112,13 @@ async def _save_emails(account_id: int, emails_data: list):
             if existing.scalar_one_or_none():
                 continue
 
-            # Créer l'email
+            # Créer l'email (convert timezone-aware dates to naive UTC)
             email = Email(
                 account_id=account_id,
                 message_id=data["message_id"],
                 subject=data["subject"],
                 sender=data["sender"],
-                date_received=data["date_received"],
+                date_received=normalize_datetime(data["date_received"]),
                 body_preview=data["body"][:500] if data["body"] else "",
                 has_attachments=data["has_attachments"],
                 attachment_count=data["attachment_count"],
@@ -117,14 +161,14 @@ def sync_all_accounts():
     Synchroniser tous les comptes email actifs
     """
     logger.info("Starting sync for all email accounts")
-    
+
     try:
-        account_ids = asyncio.run(_get_active_accounts_ids())
+        account_ids = run_async(_get_active_accounts_ids())
         logger.info(f"Found {len(account_ids)} accounts to sync")
-        
+
         for account_id in account_ids:
             sync_account.delay(account_id)
-            
+
         return {
             'status': 'completed',
             'accounts_triggered': len(account_ids)
@@ -254,7 +298,7 @@ def sync_account(account_id: int):
 
     try:
         # 1. Récupérer les détails du compte
-        account = asyncio.run(_get_account_details(account_id))
+        account = run_async(_get_account_details(account_id))
         if not account:
             logger.error(f"Account {account_id} not found")
             return {'status': 'error', 'message': 'Account not found'}
@@ -274,10 +318,10 @@ def sync_account(account_id: int):
         logger.info(f"Fetched {len(emails)} emails for account {account_id}")
 
         # 4. Sauvegarder les emails en DB
-        saved_count = asyncio.run(_save_emails(account_id, emails))
+        saved_count = run_async(_save_emails(account_id, emails))
 
         # 5. Mettre à jour les credentials si refresh (OAuth2)
-        asyncio.run(_update_credentials_if_refreshed(account_id, connector))
+        run_async(_update_credentials_if_refreshed(account_id, connector))
 
         # 6. Cleanup
         connector.disconnect()
@@ -300,6 +344,6 @@ def sync_account(account_id: int):
         logger.error(f"Error syncing account {account_id}: {e}", exc_info=True)
 
         # Enregistrer l'erreur dans la DB
-        asyncio.run(_update_account_error(account_id, str(e)))
+        run_async(_update_account_error(account_id, str(e)))
 
         return {'status': 'error', 'error': str(e)}

@@ -16,7 +16,6 @@ celery_app = Celery(
     include=[
         'worker.tasks.email_sync',
         'worker.tasks.email_classification',
-        'worker.tasks.classification',
         'worker.tasks.maintenance'
     ]
 )

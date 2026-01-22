@@ -9,6 +9,22 @@ Guide pour démarrer avec Email Agent AI en 5 minutes.
 - Docker & Docker Compose installés
 - Fichier `.env` configuré (copier depuis `.env.example`)
 
+### Configuration initiale
+
+```bash
+# Copier le fichier d'exemple
+cp .env.example .env
+
+# Générer les clés de sécurité
+python3 scripts/generate_keys.py
+```
+
+Copier les clés générées dans votre fichier `.env` :
+- `SECRET_KEY` : Pour signer les JWT et sessions
+- `ENCRYPTION_KEY` : Pour chiffrer les credentials email en base de données
+
+⚠️ **Important** : Ne jamais committer le fichier `.env` dans Git !
+
 ---
 
 ## Étape 1 : Démarrer les services
@@ -62,7 +78,36 @@ docker-compose exec api python scripts/add_email_account.py list
 
 ---
 
-## Étape 4 : Tester l'API
+## Étape 4 : Vérifier les classifications
+
+Une fois que vos emails sont synchronisés, vous pouvez vérifier comment ils ont été classifiés :
+
+```bash
+# Voir les statistiques de classification
+docker-compose exec api python scripts/check_classifications.py
+
+# Voir uniquement les emails récents avec leurs catégories
+docker-compose exec api python scripts/check_classifications.py --recent 10
+
+# Filtrer par catégorie spécifique
+docker-compose exec api python scripts/check_classifications.py --category invoice
+```
+
+### Tester les règles de classification
+
+```bash
+# Vérifier quelles règles sont chargées
+docker-compose exec api python scripts/test_rules.py
+```
+
+Ce script affiche :
+- Nombre de règles chargées
+- Résumé par catégorie
+- Test avec un email d'exemple
+
+---
+
+## Étape 5 : Tester l'API
 
 ### Lister les comptes
 ```bash
@@ -87,7 +132,7 @@ curl -X POST http://localhost:8000/api/classification/test \
 
 ---
 
-## Étape 5 : Accéder aux interfaces
+## Étape 6 : Accéder aux interfaces
 
 - **API Documentation** : http://localhost:8000/docs
 - **Portainer (gestion Docker)** : http://localhost:9000
@@ -151,8 +196,17 @@ docker-compose exec api python scripts/add_email_account.py list
 # Ajouter un compte
 docker-compose exec api python scripts/add_email_account.py
 
-# Déclencher une synchronisation manuelle (à implémenter)
-# curl -X POST http://localhost:8000/api/accounts/1/sync
+# Voir les statistiques de classification
+docker-compose exec api python scripts/check_classifications.py
+
+# Voir les emails récents
+docker-compose exec api python scripts/check_classifications.py --recent 10
+
+# Filtrer par catégorie
+docker-compose exec api python scripts/check_classifications.py --category invoice
+
+# Tester les règles de classification
+docker-compose exec api python scripts/test_rules.py
 ```
 
 ---

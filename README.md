@@ -90,11 +90,20 @@ cp .env.example .env
 nano .env
 ```
 
-Configurer au minimum :
+Générer les clés de sécurité :
+```bash
+# Méthode recommandée : utiliser le script de génération
+python3 scripts/generate_keys.py
+
+# Le script génère automatiquement :
+# - SECRET_KEY (format hexadécimal pour JWT signing)
+# - ENCRYPTION_KEY (format Fernet base64 pour chiffrement)
+```
+
+Configurer au minimum dans `.env` :
 ```env
-# Clés de chiffrement (générer avec : openssl rand -hex 32)
-SECRET_KEY=votre_clé_secrète_ici
-ENCRYPTION_KEY=votre_clé_de_chiffrement_ici
+SECRET_KEY=votre_clé_secrète_hex_ici
+ENCRYPTION_KEY=votre_clé_fernet_base64_ici
 
 # Configuration email (exemple Gmail)
 # Les comptes seront ajoutés via l'interface web
@@ -191,15 +200,22 @@ docker-compose exec ollama ollama pull phi3:mini
 - Gérer containers, volumes, réseaux
 - Voir logs en temps réel
 
-### Métriques
+### Métriques et statistiques
 ```bash
-# Voir les statistiques
-docker-compose exec api python -m scripts.stats
+# Voir les statistiques de classification
+docker-compose exec api python scripts/check_classifications.py
 
-# Emails traités aujourd'hui : 245
-# Factures archivées : 12
-# Promotions supprimées : 89
-# Temps moyen de traitement : 1.2s
+# Voir uniquement les stats globales
+docker-compose exec api python scripts/check_classifications.py --stats
+
+# Voir les 20 emails récents
+docker-compose exec api python scripts/check_classifications.py --recent 20
+
+# Filtrer par catégorie
+docker-compose exec api python scripts/check_classifications.py --category invoice
+
+# Tester les règles de classification
+docker-compose exec api python scripts/test_rules.py
 ```
 
 ## 🔐 Sécurité

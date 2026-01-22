@@ -2,7 +2,8 @@
 Utilitaires de sécurité
 """
 from cryptography.fernet import Fernet
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
 from shared.config import settings
 import base64
 import json
@@ -11,8 +12,9 @@ from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing - using modern Argon2 (OWASP recommended)
+# Argon2 is more secure than bcrypt: memory-hard, no 72-byte limit
+password_hash = PasswordHash((Argon2Hasher(),))
 
 def _get_fernet() -> Fernet:
     """Récupère l'instance Fernet configurée"""
@@ -105,26 +107,35 @@ def decrypt_credentials(encrypted_credentials: str) -> Dict[str, Any]:
 
 def hash_password(password: str) -> str:
     """
-    Hash un mot de passe avec bcrypt.
+    Hash un mot de passe avec Argon2.
+
+    Argon2 advantages over bcrypt:
+    - Memory-hard (resistant to GPU attacks)
+    - No password length limit (bcrypt has 72 bytes max)
+    - OWASP recommended
+    - Won Password Hashing Competition
 
     Args:
         password: Mot de passe en clair
 
     Returns:
-        Hash bcrypt du mot de passe
+        Hash Argon2 du mot de passe
     """
-    return pwd_context.hash(password)
+    return password_hash.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Vérifie qu'un mot de passe correspond au hash.
 
+    Supports both Argon2 (new) and bcrypt (legacy) for migration.
+
     Args:
         plain_password: Mot de passe en clair à vérifier
-        hashed_password: Hash bcrypt stocké en DB
+        hashed_password: Hash Argon2 ou bcrypt stocké en DB
 
     Returns:
         True si le mot de passe correspond, False sinon
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # pwdlib automatically detects hash type (Argon2 or bcrypt for migration)
+    return password_hash.verify(plain_password, hashed_password)

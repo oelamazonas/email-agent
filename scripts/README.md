@@ -123,6 +123,225 @@ docker-compose logs -f worker
 
 ---
 
+## 🔑 generate_keys.py
+
+Génère des clés de sécurité pour la configuration d'Email Agent AI.
+
+### Usage
+
+```bash
+# Générer toutes les clés nécessaires
+python scripts/generate_keys.py
+```
+
+### Fonctionnalités
+
+- ✅ Génération de SECRET_KEY (format hexadécimal, 64 caractères)
+- ✅ Génération de ENCRYPTION_KEY (format Fernet base64)
+- ✅ Affichage formaté prêt pour copier dans .env
+- ✅ Avertissements de sécurité intégrés
+
+### Sortie
+
+```
+============================================================
+Email Agent AI - Key Generator
+============================================================
+
+Add these to your .env file:
+
+# JWT and session signing
+SECRET_KEY=a1b2c3d4e5f6...
+
+# Fernet encryption for credentials
+ENCRYPTION_KEY=xyzABC123...==
+
+============================================================
+⚠️  WARNING: Changing ENCRYPTION_KEY will make existing
+    encrypted data unreadable. Only change during setup
+    or if you're resetting the database.
+============================================================
+```
+
+### Sécurité
+
+- **SECRET_KEY** : Utilisée pour signer les JWT et les sessions
+- **ENCRYPTION_KEY** : Utilisée pour chiffrer les credentials email en base de données
+- ⚠️ **Important** : Ne jamais committer ces clés dans Git
+- ⚠️ **Important** : Changer ENCRYPTION_KEY rend les données chiffrées illisibles
+
+---
+
+## 📊 check_classifications.py
+
+Affiche des statistiques et détails sur les emails classifiés.
+
+### Usage
+
+```bash
+# Afficher tout (stats + emails récents)
+docker-compose exec api python scripts/check_classifications.py
+
+# Uniquement les statistiques
+docker-compose exec api python scripts/check_classifications.py --stats
+
+# Uniquement les N emails récents
+docker-compose exec api python scripts/check_classifications.py --recent 10
+
+# Filtrer par catégorie
+docker-compose exec api python scripts/check_classifications.py --category invoice --limit 20
+```
+
+### Fonctionnalités
+
+- 📊 Statistiques globales par catégorie
+- 📈 Répartition par statut de traitement
+- 📬 Liste des emails récents classifiés
+- 🔍 Filtrage par catégorie spécifique
+- 💯 Affichage du niveau de confiance et raisons de classification
+
+### Catégories disponibles
+
+- `invoice` - Factures
+- `receipt` - Reçus
+- `document` - Documents
+- `professional` - Emails professionnels
+- `newsletter` - Newsletters
+- `promotion` - Promotions
+- `social` - Réseaux sociaux
+- `notification` - Notifications
+- `personal` - Personnel
+- `spam` - Spam
+- `unknown` - Non classifié
+
+### Exemples
+
+#### Voir les statistiques
+
+```bash
+$ docker-compose exec api python scripts/check_classifications.py --stats
+
+================================================================================
+📊 CLASSIFICATION STATISTICS
+================================================================================
+
+📧 Total Emails: 1,234
+
+📂 By Category:
+--------------------------------------------------------------------------------
+  invoice         │  123 │  10.0% │ █████
+  receipt         │   89 │   7.2% │ ███
+  document        │  234 │  19.0% │ █████████
+  professional    │  456 │  37.0% │ ██████████████████
+  ...
+```
+
+#### Voir les emails récents
+
+```bash
+$ docker-compose exec api python scripts/check_classifications.py --recent 5
+
+================================================================================
+📬 RECENT CLASSIFICATIONS (Last 5)
+================================================================================
+
+💰 invoice       │ ✅ completed
+   Subject: Facture Amazon - Janvier 2025
+   From: invoice@amazon.com
+   Account: mon.email@gmail.com
+   Date: 2025-01-22 14:30
+   Confidence: 95%
+   Reason: Contains invoice number and payment details
+   ----------------------------------------------------------------------------
+```
+
+#### Filtrer par catégorie
+
+```bash
+$ docker-compose exec api python scripts/check_classifications.py --category invoice --limit 10
+
+================================================================================
+📂 EMAILS IN CATEGORY: INVOICE
+================================================================================
+
+Found 10 email(s) (showing up to 10):
+
+• Facture Amazon - Janvier 2025
+  From: invoice@amazon.com │ Date: 2025-01-22 14:30 │ Confidence: 95%
+  Reason: Contains invoice number and payment details
+```
+
+---
+
+## 🧪 test_rules.py
+
+Teste le chargement et l'application des règles de classification.
+
+### Usage
+
+```bash
+# Tester les règles
+docker-compose exec api python scripts/test_rules.py
+```
+
+### Fonctionnalités
+
+- ✅ Vérification du chargement des règles depuis `rules/global_rules.yaml`
+- 📋 Affichage du résumé des règles par catégorie
+- 🧪 Test avec un email d'exemple
+- 🎯 Détection de la règle correspondante
+
+### Sortie
+
+```
+================================================================================
+🔧 CLASSIFICATION RULES TEST
+================================================================================
+
+📂 Loading rules from: /app/rules
+   Rules file: /app/rules/global_rules.yaml
+
+✅ Loaded 15 rules
+
+--------------------------------------------------------------------------------
+📋 RULES SUMMARY
+--------------------------------------------------------------------------------
+
+📂 invoice (5 rules)
+   [100] Invoice Detection
+        → Folder: Finances/Invoices
+   [ 90] Billing Emails
+        → Folder: Finances/Bills
+
+📂 promotion (3 rules)
+   [ 80] Marketing Campaigns
+        → Auto-delete: Yes
+   ...
+
+================================================================================
+🧪 TEST WITH SAMPLE EMAIL
+================================================================================
+
+📧 Sample Email:
+   Subject: Your Invoice #12345
+   From: billing@company.com
+   Has attachments: True
+
+✅ Matched Rule: Invoice Detection
+   Priority: 100
+   Category: invoice
+   Target Folder: Finances/Invoices
+```
+
+### Cas d'usage
+
+- Vérifier que les règles se chargent correctement
+- Déboguer les règles de classification
+- Tester de nouvelles règles avant déploiement
+- Comprendre quelle règle s'applique à un type d'email
+
+---
+
 ## 🔄 À venir
 
 ### backup_database.sh
@@ -133,9 +352,6 @@ Script pour restaurer une sauvegarde.
 
 ### migrate_accounts.py
 Migration de comptes depuis d'autres systèmes.
-
-### test_classification.py
-Tester la classification sur des exemples.
 
 ### health_check.py
 Vérifier l'état de santé du système.

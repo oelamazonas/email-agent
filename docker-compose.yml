@@ -10,7 +10,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://emailagent:${DB_PASSWORD:-emailagent123}@db:5432/emailagent
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://emailagent:${DB_PASSWORD:-emailagent123}@db:5432/emailagent
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
       - OLLAMA_HOST=http://ollama:11434
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
@@ -53,6 +53,7 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
+      - ./rules:/app/rules
     networks:
       - email-agent-network
     command: celery -A worker.celery_app worker --loglevel=info --concurrency=2
@@ -66,7 +67,7 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://emailagent:${DB_PASSWORD:-emailagent123}@db:5432/emailagent
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
       - SECRET_KEY=${SECRET_KEY}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     depends_on:
@@ -74,6 +75,7 @@ services:
       - redis
     volumes:
       - ./logs:/app/logs
+      - ./rules:/app/rules
     networks:
       - email-agent-network
     command: celery -A worker.celery_app beat --loglevel=info
